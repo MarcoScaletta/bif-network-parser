@@ -1,11 +1,9 @@
-package networkbuilding;
 
 import aima.core.probability.RandomVariable;
 import aima.core.probability.domain.FiniteDomain;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.lang.reflect.Array;
+import java.util.*;
 
 
 public class BifProbabilityParser{
@@ -41,7 +39,8 @@ public class BifProbabilityParser{
     private List<String> parsedVariables;
 
     private String [][] values;
-    private double[] probabilities;
+    private double [] probabilities;
+    private double [][] matrixProb;
 
 
     public BifProbabilityParser(String toParse, Map<String, RandomVariable> map) throws Exception {
@@ -56,7 +55,6 @@ public class BifProbabilityParser{
         for (int i = 1; i < toParses.length; i++) {
             if(!toParses[i].matches(PROB_LINE) && !toParses[i].matches("}"))
                 throw new Exception("wrong probability definition " + toParses[i]);
-
 
         }
 
@@ -107,52 +105,82 @@ public class BifProbabilityParser{
 
     }
 
-    private void sortProbabilities(Map<String, RandomVariable> map) throws Exception {
-        FiniteDomain  varDomain;
-        FiniteDomain [] domains;
-
-        double [] prob;
-
-        if(values.length > 1){
-            if(parsedVariables.size() != values[0].length)
-                throw new Exception("Different number of conditioning variable: " +
-                        "\n defined " +parsedVariables + " but find " + values[0].length +
-                        " conditioning variable number in CPT");
-            varDomain = (FiniteDomain) map.get(condVar).getDomain();
-            domains = new FiniteDomain[parsedVariables.size()];
-            for (int i = 0; i < domains.length; i++) {
-                domains[i] = (FiniteDomain) map.get(parsedVariables.get(i)).getDomain();
-
-            }
-            prob = new double[probabilities.length];
-            int index=0;
-            for (int i = 0; i < values.length; i++) {
-                index=0;
-                for (int j = 0; j < values[i].length; j++) {
-                    index += (int) Math.pow(2,values[i].length-j-1)*domains[j].getOffset(values[i][j]);
-
-
-                }
-
-                for (int j = 0; j < varDomain.size(); j++) {
-                    prob[(varDomain.size()*i)+j] = probabilities[(varDomain.size()*index)+j];
-                }
-
-
-            }
-            probabilities = prob;
+    private Map<Integer, Integer> mapValuesProbs(Map<String, RandomVariable> map1){
+        Map<Integer, Integer> map = new HashMap<>();
+        for (int i = 0; i < values.length; i++) {
+            map.put(getDomainValutation(values[i], map1), i);
         }
+        return map;
     }
 
-    double[] getProbabilities() {
+    private int getDomainValutation(String [] values, Map<String, RandomVariable> map){
+        String valutation = "";
+        FiniteDomain  varDomain;
+        for (int i = 0; i < values.length; i++) {
+            varDomain = (FiniteDomain) map.get(parsedVariables.get(i)).getDomain();
+            valutation += (varDomain.getOffset(values[i]));
+        }
+        return Integer.parseInt(valutation);
+    }
+
+
+    private void sortProbabilities(Map<String, RandomVariable> map) throws Exception {
+        double [][]  prob;
+        String [][] valuesTmp;
+        matrixProb = transform(probabilities, map.get(condVar).getDomain().size());
+
+        if(values.length > 1){
+
+            Integer [] val ;
+            Map<Integer, Integer> mapValuesProbs = mapValuesProbs(map);
+            valuesTmp = values.clone();
+            val = mapValuesProbs.keySet().toArray(new Integer[0]);
+            Arrays.sort(val);
+            prob = matrixProb.clone();
+
+            for (int i = 0; i < val.length; i++) {
+                prob[i] = matrixProb[mapValuesProbs.get(val[i])];
+                valuesTmp[i] = values[mapValuesProbs.get(val[i])];
+            }
+            matrixProb = prob;
+            values = valuesTmp;
+            int k = 0;
+            for (int i = 0; i < prob.length; i++) {
+                for (int j = 0; j < prob[i].length; j++) {
+                    probabilities[k++] = prob[i][j];
+                }
+
+            }
+        }
+
+    }
+
+    public double[][] transform(double[] arr, int N) {
+        int M = (arr.length + N - 1) / N;
+        double[][] mat = new double[M][];
+        int start = 0;
+        for (int r = 0; r < M; r++) {
+            int L = Math.min(N, arr.length - start);
+            mat[r] = java.util.Arrays.copyOfRange(arr, start, start + L);
+            start += L;
+        }
+        return mat;
+    }
+
+
+    public double[] getProbabilities() {
         return probabilities;
     }
 
-    String getCondVar() {
+    public double[][] getMatrixProb() {
+        return matrixProb;
+    }
+
+    public String getCondVar() {
         return condVar;
     }
 
-    List<String> getParsedVariables() {
+    public List<String> getParsedVariables() {
         return parsedVariables;
     }
 

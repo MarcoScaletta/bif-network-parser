@@ -1,4 +1,3 @@
-package networkbuilding;
 
 import aima.core.probability.RandomVariable;
 import aima.core.probability.bayes.BayesianNetwork;
@@ -21,6 +20,7 @@ import java.util.HashSet;
 
 
 public abstract class BifBNReader {
+
 
     private List<BifVariableParser> bifVariableParsers;
     private List<BifProbabilityParser> bifProbabilityParsers;

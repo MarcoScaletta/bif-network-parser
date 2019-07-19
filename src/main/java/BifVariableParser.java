@@ -1,4 +1,3 @@
-package networkbuilding;
 
 import aima.core.probability.RandomVariable;
 import aima.core.probability.domain.ArbitraryTokenDomain;
